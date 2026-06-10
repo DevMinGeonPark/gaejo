@@ -1,0 +1,58 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gaejo"
+version = "0.1.0"
+description = "한국식 연구 발표 PPT 개조식(箇條式) 어휘 다듬기 하네스"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "GAEJO Authors" }]
+keywords = ["korean", "nlp", "text-style-transfer", "presentation", "개조식", "kiwipiepy"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: Korean",
+    "Programming Language :: Python :: 3",
+    "Topic :: Text Processing :: Linguistic",
+]
+dependencies = []
+
+[project.optional-dependencies]
+kiwi = ["kiwipiepy>=0.15"]
+anthropic = ["anthropic>=0.40"]
+all = ["kiwipiepy>=0.15", "anthropic>=0.40"]
+dev = ["kiwipiepy>=0.15", "pytest>=7", "ruff>=0.4"]
+
+[project.scripts]
+gaejo = "gaejo.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/your-org/gaejo"
+Repository = "https://github.com/your-org/gaejo"
+Issues = "https://github.com/your-org/gaejo/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gaejo"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/gaejo/data/fewshot_pairs.json" = "gaejo/data/fewshot_pairs.json"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# 프롬프트 템플릿은 긴 한국어 지시문 라인을 그대로 유지
+"src/gaejo/prompt.py" = ["E501"]
+# 테스트는 kiwipiepy 미설치 환경을 위해 importorskip 후 임포트
+"tests/*" = ["E402"]

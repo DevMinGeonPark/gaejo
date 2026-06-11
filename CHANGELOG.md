@@ -3,6 +3,29 @@
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/)와
 [Semantic Versioning](https://semver.org/)을 따른다.
 
+## [Unreleased]
+
+### Fixed (멀티에이전트 감사 — 61건 발견, 46건 확정 반영)
+- **detector**: NFD(분해형) 한글 입력이 '영문'으로 오분류되던 버그 — NFC 정규화 전처리 추가.
+  zero-width 문자(U+200B 등) 제거, 후행 이모지(W_EMOJI) 무시, 한글 없는 기호 전용 줄('---', '→')을
+  '영문'으로 분류, URL/EMAIL 종결을 체언성 종결로 인정.
+- **score**: 불릿 정규식이 소수("1.5배")·절번호("3.2")·연도("2024.")를 잘라먹던 버그 수정
+  (숫자 마커 1~3자리 + 뒤 숫자 negative lookahead). 한국 PPT 머리기호(▶ ■ ○ ● ※ ‣ 등) 확장.
+  한글 줄이 없으면 `korean_gaejo_ratio`가 0.0 대신 `None`. '-기' 종결 경고 추가.
+- **prompt**: `load_pairs()`의 lru_cache가 가변 리스트를 반환해 호출자 변형 시 캐시가 오염되던 버그.
+- **transform**: `stop_reason == "max_tokens"` 무음 잘림 가드, 빈/비텍스트 응답 가드,
+  `ANTHROPIC_AUTH_TOKEN` 인정. 기본 `max_tokens` 1024 → 16000.
+- **evaluator**: `llm_judge` JSON 추출 견고화(`raw_decode` + 잘림/비JSON 가드), max_tokens 400 → 1024.
+- **cli**: `--max-tokens` 플래그 추가, `--model` 기본값 우회 로직 제거(빈 문자열/직접 호출 경로 수정),
+  detect/score의 kiwipiepy 미설치 안내, 멀티라인 detect는 줄별 배열 출력, Anthropic API 오류 처리.
+
+### Changed
+- 기본 모델을 `claude-sonnet-4-6` → `claude-opus-4-8`(현행 권장)로 갱신.
+- 패키징: PEP 639 라이선스 표기(`License-Expression: MIT`), 버전 단일 소스화(hatch dynamic),
+  `py.typed` 추가(PEP 561), placeholder URL 제거.
+- CI: Python 3.9~3.14 매트릭스, pip 캐시, kiwipiepy 임포트 가드, `pytest -rs`.
+- 테스트 30개 → 59개(cli/transform/evaluator 신규 + 감사 회귀 테스트).
+
 ## [0.1.0] - 2026-06-10
 
 ### Added

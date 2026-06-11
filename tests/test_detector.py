@@ -51,3 +51,37 @@ def test_empty():
     r = classify_ending("   ")
     assert r.ending in {"기타", "영문"}
     assert r.is_gaejo is False
+
+
+# ---- 감사 회귀 테스트 (NFD / 이모지 / zero-width / 기호 전용 줄) ----
+
+def test_nfd_hangul_normalized():
+    import unicodedata
+
+    nfd = unicodedata.normalize("NFD", "성능을 크게 개선함")
+    r = classify_ending(nfd)
+    assert r.has_korean is True
+    assert r.ending == "ㅁ음" and r.is_gaejo is True
+
+
+def test_trailing_emoji_ignored():
+    r = classify_ending("성능 개선함 🎉")
+    assert r.ending == "ㅁ음" and r.is_gaejo is True
+
+
+def test_zero_width_space_stripped():
+    # U+200B가 끝에 붙어도 완전문장이 명사로 둔갑하지 않아야 한다
+    r = classify_ending("우리는 정확도를 개선했습니다​")
+    assert r.ending == "완전문장" and r.is_gaejo is False
+
+
+def test_symbol_only_line_is_english_type():
+    # 한글 없는 기호 전용 줄은 '영문'(평가 대상 아님)
+    for line in ("---", "→", "..."):
+        r = classify_ending(line)
+        assert r.ending == "영문" and r.is_gaejo is False, line
+
+
+def test_url_ending_treated_as_noun():
+    r = classify_ending("참고 자료: https://example.com/paper")
+    assert r.ending == "명사" and r.is_gaejo is True

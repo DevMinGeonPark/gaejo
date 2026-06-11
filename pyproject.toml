@@ -1,20 +1,20 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
 name = "gaejo"
-version = "0.1.0"
+dynamic = ["version"]
 description = "한국식 연구 발표 PPT 개조식(箇條式) 어휘 다듬기 하네스"
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "GAEJO Authors" }]
 keywords = ["korean", "nlp", "text-style-transfer", "presentation", "개조식", "kiwipiepy"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Natural Language :: Korean",
     "Programming Language :: Python :: 3",
     "Topic :: Text Processing :: Linguistic",
@@ -25,15 +25,13 @@ dependencies = []
 kiwi = ["kiwipiepy>=0.15"]
 anthropic = ["anthropic>=0.40"]
 all = ["kiwipiepy>=0.15", "anthropic>=0.40"]
-dev = ["kiwipiepy>=0.15", "pytest>=7", "ruff>=0.4"]
+dev = ["kiwipiepy>=0.15", "anthropic>=0.40", "pytest>=7,<10", "ruff>=0.15,<0.16"]
 
 [project.scripts]
 gaejo = "gaejo.cli:main"
 
-[project.urls]
-Homepage = "https://github.com/your-org/gaejo"
-Repository = "https://github.com/your-org/gaejo"
-Issues = "https://github.com/your-org/gaejo/issues"
+[tool.hatch.version]
+path = "src/gaejo/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/gaejo"]

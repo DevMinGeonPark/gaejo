@@ -21,7 +21,5 @@ htmlcov/
 .DS_Store
 
 # Local artifacts (코퍼스 원본·다운로드물은 저작권상 커밋하지 않음)
-corpus/videos/
-corpus/frames/
-*.mp4
-*.png
+corpus/
+.audit_result.json

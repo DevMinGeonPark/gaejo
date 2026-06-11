@@ -11,7 +11,9 @@ import os
 
 from .prompt import build_messages
 
-DEFAULT_MODEL = "claude-sonnet-4-6"  # 변환은 sonnet으로 충분, 필요시 opus로 상향
+DEFAULT_MODEL = "claude-opus-4-8"  # 현행 권장 기본. 비용 우선이면 claude-sonnet-4-6 지정
+# 비스트리밍 권장 상한(~16K). 출력 토큰은 실제 생성분만 과금되므로 상향에 비용 부담 없음.
+DEFAULT_MAX_TOKENS = 16000
 
 
 def messages_for(text: str, unit: str = "bullet", n_per_type: int = 5) -> dict:
@@ -25,16 +27,16 @@ def transform(
     unit: str = "bullet",
     model: str = DEFAULT_MODEL,
     n_per_type: int = 5,
-    max_tokens: int = 1024,
+    max_tokens: int = DEFAULT_MAX_TOKENS,
 ) -> str:
-    """텍스트를 개조식으로 변환한다. ANTHROPIC_API_KEY 필요."""
+    """텍스트를 개조식으로 변환한다. ANTHROPIC_API_KEY(또는 AUTH_TOKEN) 필요."""
     system, user = build_messages(text, unit, n_per_type)
     try:
         import anthropic
     except ImportError as exc:
-        raise RuntimeError("anthropic SDK 미설치: `pip install gaejo[anthropic]`") from exc
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        raise RuntimeError("ANTHROPIC_API_KEY 미설정")
+        raise RuntimeError("anthropic SDK 미설치: `pip install anthropic`") from exc
+    if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
+        raise RuntimeError("ANTHROPIC_API_KEY(또는 ANTHROPIC_AUTH_TOKEN) 미설정")
     client = anthropic.Anthropic()
     resp = client.messages.create(
         model=model,
@@ -42,4 +44,12 @@ def transform(
         system=system,
         messages=[{"role": "user", "content": user}],
     )
-    return resp.content[0].text.strip()
+    if resp.stop_reason == "max_tokens":
+        raise RuntimeError(
+            f"출력이 max_tokens({max_tokens})에서 잘림 — "
+            "max_tokens를 상향하거나 입력을 나눠 변환하세요"
+        )
+    out = next((b.text for b in resp.content if b.type == "text"), None)
+    if out is None:
+        raise RuntimeError(f"텍스트 응답 없음 (stop_reason={resp.stop_reason})")
+    return out.strip()

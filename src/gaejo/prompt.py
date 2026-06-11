@@ -69,10 +69,17 @@ _UNIT_NOTES = {
 
 
 @lru_cache(maxsize=1)
+def _raw_pairs() -> str:
+    return resources.files("gaejo.data").joinpath("fewshot_pairs.json").read_text("utf-8")
+
+
 def load_pairs() -> list:
-    """패키지에 동봉된 합성 few-shot 변환쌍을 로드한다."""
-    raw = resources.files("gaejo.data").joinpath("fewshot_pairs.json").read_text("utf-8")
-    return json.loads(raw)
+    """패키지에 동봉된 합성 few-shot 변환쌍을 로드한다.
+
+    호출마다 새 리스트를 반환한다(캐시는 원문 텍스트만) — 반환값을 변형해도
+    이후 호출이 오염되지 않는다.
+    """
+    return json.loads(_raw_pairs())
 
 
 def select_fewshot(n_per_type: int = 5) -> list:

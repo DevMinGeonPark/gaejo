@@ -21,9 +21,15 @@ JUDGE_AXES = {
     "naturalness": "0~1, 한국 연구 발표 슬라이드로서 자연스럽고 비문이 없는가",
 }
 
+_JUDGE_MODEL = "claude-opus-4-8"
+
 
 def objective(original: str, output: str, max_words: int = 12) -> dict:
-    """스타일 축 객관 메트릭. 한글 줄만 분모로 개조식 종결 비율 계산."""
+    """스타일 축 객관 메트릭.
+
+    주의: ``original``은 llm_judge()와의 인터페이스 대칭을 위한 인자로, 현재 사용하지
+    않는다 — 스타일 축은 출력만으로 평가한다(의미보존 비교는 LLM 판정 축의 몫).
+    """
     return score_text(output, max_words=max_words).as_dict()
 
 
@@ -38,20 +44,29 @@ def judge_prompt(original: str, output: str) -> str:
     )
 
 
-def llm_judge(original: str, output: str, model: str = "claude-sonnet-4-6") -> dict:
+def llm_judge(original: str, output: str, model: str = _JUDGE_MODEL,
+              max_tokens: int = 1024) -> dict:
     """API 기반 단일 판정. 앙상블은 호출측에서 여러 model/seed로 반복."""
     try:
         import anthropic
     except ImportError as exc:
-        raise RuntimeError("anthropic SDK 미설치: `pip install gaejo[anthropic]`") from exc
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        raise RuntimeError("ANTHROPIC_API_KEY 미설정")
+        raise RuntimeError("anthropic SDK 미설치: `pip install anthropic`") from exc
+    if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
+        raise RuntimeError("ANTHROPIC_API_KEY(또는 ANTHROPIC_AUTH_TOKEN) 미설정")
     client = anthropic.Anthropic()
     resp = client.messages.create(
         model=model,
-        max_tokens=400,
+        max_tokens=max_tokens,
         messages=[{"role": "user", "content": judge_prompt(original, output)}],
     )
-    txt = resp.content[0].text.strip()
-    txt = txt[txt.find("{"): txt.rfind("}") + 1]
-    return json.loads(txt)
+    if resp.stop_reason == "max_tokens":
+        raise RuntimeError("판정 응답이 max_tokens에서 잘림 — max_tokens 상향 필요")
+    txt = next((b.text for b in resp.content if b.type == "text"), "") or ""
+    start = txt.find("{")
+    if start == -1:
+        raise RuntimeError(f"판정 응답에 JSON 없음: {txt[:120]!r}")
+    try:
+        obj, _ = json.JSONDecoder().raw_decode(txt, start)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"판정 응답 파싱 실패: {txt[:120]!r}") from exc
+    return obj

@@ -1,6 +1,6 @@
 """GAEJO 커맨드라인 인터페이스.
 
-    gaejo detect    "성능 개선함"          # 종결 양식 판별
+    gaejo detect    "성능 개선함"          # 종결 양식 판별(여러 줄이면 줄별 배열)
     gaejo score     "...여러 줄..."          # 개조식 준수도 메트릭(객관)
     gaejo transform "...구어체..."           # 개조식 변환(ANTHROPIC_API_KEY 필요)
     gaejo prompt    "...구어체..."           # 변환 프롬프트만 출력(키 불필요)
@@ -23,15 +23,28 @@ def _read(arg: str) -> str:
 def _cmd_detect(args) -> int:
     from .detector import classify_ending
 
-    r = classify_ending(_read(args.text))
-    print(json.dumps(r.__dict__, ensure_ascii=False, indent=2))
+    text = _read(args.text)
+    try:
+        lines = [ln for ln in text.splitlines() if ln.strip()]
+        if len(lines) > 1:
+            results = [classify_ending(ln).__dict__ | {"text": ln.strip()} for ln in lines]
+            print(json.dumps(results, ensure_ascii=False, indent=2))
+        else:
+            print(json.dumps(classify_ending(text).__dict__, ensure_ascii=False, indent=2))
+    except RuntimeError as exc:  # kiwipiepy 미설치
+        print(f"[판별 불가] {exc}", file=sys.stderr)
+        return 1
     return 0
 
 
 def _cmd_score(args) -> int:
     from .score import score_text
 
-    rep = score_text(_read(args.text), max_words=args.max_words)
+    try:
+        rep = score_text(_read(args.text), max_words=args.max_words)
+    except RuntimeError as exc:  # kiwipiepy 미설치
+        print(f"[채점 불가] {exc}", file=sys.stderr)
+        return 1
     print(json.dumps(rep.as_dict(), ensure_ascii=False, indent=2))
     return 0
 
@@ -48,12 +61,25 @@ def _cmd_prompt(args) -> int:
 
 
 def _cmd_transform(args) -> int:
-    from .transform import transform
+    from .transform import DEFAULT_MAX_TOKENS, DEFAULT_MODEL, transform
 
     try:
-        print(transform(_read(args.text), unit=args.unit, model=args.model))
+        from anthropic import APIError  # type: ignore[import-not-found]
+    except ImportError:
+        APIError = ()  # anthropic 미설치 시 RuntimeError 경로로 처리됨
+
+    try:
+        print(transform(
+            _read(args.text),
+            unit=args.unit,
+            model=args.model or DEFAULT_MODEL,
+            max_tokens=args.max_tokens or DEFAULT_MAX_TOKENS,
+        ))
     except RuntimeError as exc:
         print(f"[변환 불가] {exc}\n프롬프트만 보려면 `gaejo prompt`를 사용하세요.", file=sys.stderr)
+        return 1
+    except APIError as exc:
+        print(f"[API 오류] {exc}", file=sys.stderr)
         return 1
     return 0
 
@@ -64,7 +90,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="cmd")
 
     d = sub.add_parser("detect", help="종결 양식 판별")
-    d.add_argument("text", help="문장(또는 -로 표준입력)")
+    d.add_argument("text", help="문장(또는 -로 표준입력). 여러 줄이면 줄별 결과 배열")
     d.set_defaults(func=_cmd_detect)
 
     s = sub.add_parser("score", help="개조식 준수도 메트릭")
@@ -81,7 +107,9 @@ def build_parser() -> argparse.ArgumentParser:
     t = sub.add_parser("transform", help="개조식 변환(ANTHROPIC_API_KEY 필요)")
     t.add_argument("text", help="구어체 텍스트(또는 -)")
     t.add_argument("--unit", choices=["title", "bullet", "slide"], default="bullet")
-    t.add_argument("--model", default=None)
+    t.add_argument("--model", default=None, help="모델 ID(기본: transform.DEFAULT_MODEL)")
+    t.add_argument("--max-tokens", dest="max_tokens", type=int, default=None,
+                   help="출력 토큰 상한(기본: transform.DEFAULT_MAX_TOKENS)")
     t.set_defaults(func=_cmd_transform)
     return p
 
@@ -97,10 +125,6 @@ def main(argv=None) -> int:
     if not getattr(args, "cmd", None):
         parser.print_help()
         return 0
-    if args.cmd == "transform" and args.model is None:
-        from .transform import DEFAULT_MODEL
-
-        args.model = DEFAULT_MODEL
     return args.func(args)
 
 

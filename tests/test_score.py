@@ -37,4 +37,30 @@ def test_english_lines_excluded_from_korean_ratio():
 def test_empty():
     rep = score_text("")
     assert rep.n_lines == 0
-    assert rep.korean_gaejo_ratio == 0.0
+    assert rep.korean_gaejo_ratio is None  # 한글 줄 없음 → 평가 대상 아님
+
+
+# ---- 감사 회귀 테스트 (불릿 정규식 / 한글 0줄 / '-기' 경고) ----
+
+def test_decimal_and_year_not_stripped_as_bullet():
+    from gaejo.score import _split_lines
+
+    assert _split_lines("1.5배 성능 향상") == ["1.5배 성능 향상"]
+    assert _split_lines("3.2 실험 설정") == ["3.2 실험 설정"]
+    assert _split_lines("2024. 한국어 NLP 동향") == ["2024. 한국어 NLP 동향"]
+    # 진짜 번호 마커는 여전히 제거
+    assert _split_lines("1. 서론") == ["서론"]
+    assert _split_lines("(1) 배경") == ["배경"]
+    assert _split_lines("▶ 성능 향상") == ["성능 향상"]
+
+
+def test_no_korean_lines_ratio_is_none():
+    rep = score_text("Experimental Results\nSetup")
+    assert rep.korean_gaejo_ratio is None
+    assert any("한글 줄 없음" in w for w in rep.warnings)
+
+
+def test_gi_ending_warned():
+    rep = score_text("다양한 데이터셋 검증하기")
+    assert rep.ending_dist["기"] == 1
+    assert any("'-기' 종결" in w for w in rep.warnings)

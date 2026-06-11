@@ -21,6 +21,8 @@
 
 ### Changed
 - 기본 모델을 `claude-sonnet-4-6` → `claude-opus-4-8`(현행 권장)로 갱신.
+- `transform()`이 스트리밍(`messages.stream`)을 사용 — 큰 `max_tokens`에서도 SDK 10분 가드에 걸리지 않음.
+- 자모 전용 줄("ㅋㅋㅋ")은 이제 한국어로 취급되어 '영문'이 아닌 '기타'로 분류됨(평가 분모 포함).
 - 패키징: PEP 639 라이선스 표기(`License-Expression: MIT`), 버전 단일 소스화(hatch dynamic),
   `py.typed` 추가(PEP 561), placeholder URL 제거.
 - CI: Python 3.9~3.14 매트릭스, pip 캐시, kiwipiepy 임포트 가드, `pytest -rs`.

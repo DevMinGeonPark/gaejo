@@ -44,9 +44,19 @@ def _stub_anthropic(monkeypatch, resp):
     """sys.modules에 가짜 anthropic을 주입해 네트워크 없이 transform 본체를 검증."""
     fake = types.ModuleType("anthropic")
 
-    class _Messages:
-        def create(self, **kwargs):
+    class _Stream:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def get_final_message(self):
             return resp
+
+    class _Messages:
+        def stream(self, **kwargs):
+            return _Stream()
 
     class _Client:
         def __init__(self):

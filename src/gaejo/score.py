@@ -18,17 +18,20 @@ from dataclasses import asdict, dataclass, field
 from .detector import ENDING_TYPES, classify_ending
 
 # 글머리표/번호 머리 기호.
-# - 기호 마커: 한국 PPT에서 흔한 것까지 포함(▶ ■ ○ ● ※ ‣ ✓, en/em dash, >)
+# - 순수 글머리 글리프(•▶ 등)는 공백 없이도 마커로 인정
+# - 수학/인용 기호와 겸용인 -, –, —, > 는 뒤 공백이 있을 때만 마커("-10%", ">50%" 보호)
 # - 번호 마커(1. / 1) / (1) / ①, 가. / ㄱ.)는 소수·연도와의 충돌을 막기 위해
 #   ① 숫자 1~3자리 한정 ② 뒤에 숫자가 오면 마커로 보지 않음(1.5배, 3.2절)
-#   ③ 한글 음절 열거('가.')는 뒤 공백 필수('다. 운동했다' 같은 본문 보호와는 trade-off)
+#   ③ 한글 열거는 관례 음절(가나다라…하)만, 뒤 공백 필수("끝) 요약" 같은 본문 보호)
+#   한계: "(95) 신뢰구간"처럼 참조번호가 열거 형식과 동일하면 구분 불가(마커로 제거됨)
 _BULLET = re.compile(
     r"^\s*(?:"
-    r"[-•▪◦*·‣▸▶■□○●※✓>–—]\s*"
+    r"[•▪◦*·‣▸▶■□○●※✓]\s*"
+    r"|[-–—>]\s+"
     r"|\(\d{1,3}\)\s*"
     r"|\d{1,3}[.)](?!\d)\s*"
     r"|[①-⑳]\s*"
-    r"|[가-힣ㄱ-ㅎ][.)]\s+"
+    r"|[가나다라마바사아자차카타파하ㄱ-ㅎ][.)]\s+"
     r")"
 )
 
@@ -77,7 +80,10 @@ def score_text(text: str, max_words: int = 12) -> ComplianceReport:
 
     n = len(scored)
     if n == 0:
-        return ComplianceReport(0, 0.0, None, 0.0, 0.0, 0, {e: 0 for e in ENDING_TYPES})
+        return ComplianceReport(
+            0, 0.0, None, 0.0, 0.0, 0, {e: 0 for e in ENDING_TYPES},
+            warnings=["평가할 줄 없음 — 개조식 평가 대상 아님"],
+        )
 
     gaejo_ratio = sum(s.is_gaejo for s in scored) / n
     ko_lines = [s for s in scored if s.ending != "영문"]

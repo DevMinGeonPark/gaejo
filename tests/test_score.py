@@ -64,3 +64,20 @@ def test_gi_ending_warned():
     rep = score_text("다양한 데이터셋 검증하기")
     assert rep.ending_dist["기"] == 1
     assert any("'-기' 종결" in w for w in rep.warnings)
+
+
+def test_math_signs_not_stripped_as_bullet():
+    from gaejo.score import _split_lines
+
+    assert _split_lines(">50% 성능 향상") == [">50% 성능 향상"]
+    assert _split_lines("–10% 오차 허용") == ["–10% 오차 허용"]
+    assert _split_lines("끝) 마무리 요약") == ["끝) 마무리 요약"]
+    # 공백이 있으면 여전히 마커
+    assert _split_lines("- 성능 향상") == ["성능 향상"]
+    assert _split_lines("> 인용 줄") == ["인용 줄"]
+
+
+def test_empty_input_has_warning():
+    rep = score_text("")
+    assert rep.korean_gaejo_ratio is None
+    assert rep.warnings  # 빈 입력도 의미를 경고로 전달

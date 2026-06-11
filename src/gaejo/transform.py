@@ -12,7 +12,7 @@ import os
 from .prompt import build_messages
 
 DEFAULT_MODEL = "claude-opus-4-8"  # 현행 권장 기본. 비용 우선이면 claude-sonnet-4-6 지정
-# 비스트리밍 권장 상한(~16K). 출력 토큰은 실제 생성분만 과금되므로 상향에 비용 부담 없음.
+# 출력 토큰은 실제 생성분만 과금되므로 상향에 비용 부담 없음(스트리밍이라 큰 값도 안전).
 DEFAULT_MAX_TOKENS = 16000
 
 
@@ -38,12 +38,14 @@ def transform(
     if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
         raise RuntimeError("ANTHROPIC_API_KEY(또는 ANTHROPIC_AUTH_TOKEN) 미설정")
     client = anthropic.Anthropic()
-    resp = client.messages.create(
+    # 스트리밍 사용: 비스트리밍은 max_tokens가 크면(~21K+) SDK가 ValueError를 던진다(10분 가드).
+    with client.messages.stream(
         model=model,
         max_tokens=max_tokens,
         system=system,
         messages=[{"role": "user", "content": user}],
-    )
+    ) as stream:
+        resp = stream.get_final_message()
     if resp.stop_reason == "max_tokens":
         raise RuntimeError(
             f"출력이 max_tokens({max_tokens})에서 잘림 — "

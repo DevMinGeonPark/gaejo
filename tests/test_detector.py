@@ -85,3 +85,9 @@ def test_symbol_only_line_is_english_type():
 def test_url_ending_treated_as_noun():
     r = classify_ending("참고 자료: https://example.com/paper")
     assert r.ending == "명사" and r.is_gaejo is True
+
+
+def test_jamo_only_line_is_korean_other():
+    # 자모 전용 줄은 한국어로 취급(기타) — v0.1.0의 '영문' 분류에서 의도적으로 변경
+    r = classify_ending("ㅋㅋㅋ")
+    assert r.has_korean is True and r.is_gaejo is False

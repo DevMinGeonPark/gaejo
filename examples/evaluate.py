@@ -38,7 +38,8 @@ def main() -> int:
         if args.judge:
             v = llm_judge(c["original"], out)
             judges.append(v)
-            line += f"  | 스타일={v['style_accuracy']} 의미={v['content_preservation']} 자연={v['naturalness']}"
+            line += (f"  | 스타일={v['style_accuracy']} 의미={v['content_preservation']}"
+                     f" 자연={v['naturalness']}")
         print(line)
 
     print(f"\n개조식 종결 비율 평균: {statistics.mean(ratios):.2f}")

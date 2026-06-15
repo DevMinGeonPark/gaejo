@@ -22,7 +22,8 @@ def main():
     print("\n# 2) 준수도 메트릭 (score)")
     block = "노이즈 강건성 확보\n성능 개선함\n우리는 정확도를 높였습니다"
     rep = score_text(block)
-    print(f"  개조식 종결 비율(한글): {rep.korean_gaejo_ratio}  완전문장: {rep.full_sentence_count}")
+    print(f"  개조식 종결 비율(한글): {rep.korean_gaejo_ratio}"
+          f"  완전문장: {rep.full_sentence_count}")
     print(f"  경고: {rep.warnings}")
 
     print("\n# 3) 변환 프롬프트 (transform.messages_for) — API 키 불필요")

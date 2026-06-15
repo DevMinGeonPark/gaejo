@@ -26,7 +26,12 @@
 - 패키징: PEP 639 라이선스 표기(`License-Expression: MIT`), 버전 단일 소스화(hatch dynamic),
   `py.typed` 추가(PEP 561), placeholder URL 제거.
 - CI: Python 3.9~3.14 매트릭스, pip 캐시, kiwipiepy 임포트 가드, `pytest -rs`.
-- 테스트 30개 → 59개(cli/transform/evaluator 신규 + 감사 회귀 테스트).
+- 테스트 30개 → 62개(cli/transform/evaluator 신규 + 감사·재검증 회귀 테스트).
+
+### Docs
+- `docs/evaluation.md` + `examples/evaluate.py` + `examples/eval_cases.json` 추가 —
+  홀드아웃 10케이스 기능 검증(스타일 0.97·의미보존 0.92·자연 0.95·개조식 종결 100%).
+  합성 few-shot 교체 후에도 품질 유지·향상 확인.
 
 ## [0.1.0] - 2026-06-10
 

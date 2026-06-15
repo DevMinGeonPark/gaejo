@@ -88,6 +88,17 @@ messages_for("...", unit="slide")   # {"system":..., "user":..., "model":...}
 
 자세한 근거·반박된 가정·종결 결정 트리: **[docs/methodology.md](docs/methodology.md)**
 
+## 품질 (홀드아웃 10케이스)
+
+| 축 | 점수 |
+|---|---|
+| 스타일 변환 정확도 (LLM 앙상블) | **0.97** |
+| 의미 보존 (LLM 앙상블) | **0.92** |
+| 자연스러움 (LLM 앙상블) | **0.95** |
+| 개조식 종결 비율 (객관/Kiwi) | **100%** · 완전문장 0건 |
+
+재현: `ANTHROPIC_API_KEY=... python examples/evaluate.py --judge` · 방법론·약점: **[docs/evaluation.md](docs/evaluation.md)**
+
 ## 데이터
 
 동봉된 `src/gaejo/data/fewshot_pairs.json`은 **모두 독창적 합성 예시**다(특정 발표 전사본 아님).

@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import os
 
+from .retention import content_retention
 from .score import score_text
 
 JUDGE_AXES = {
@@ -25,12 +26,15 @@ _JUDGE_MODEL = "claude-opus-4-8"
 
 
 def objective(original: str, output: str, max_words: int = 12) -> dict:
-    """스타일 축 객관 메트릭.
+    """객관 메트릭 = 스타일 축(출력) + 의미 보존 축(원문↔출력).
 
-    주의: ``original``은 llm_judge()와의 인터페이스 대칭을 위한 인자로, 현재 사용하지
-    않는다 — 스타일 축은 출력만으로 평가한다(의미보존 비교는 LLM 판정 축의 몫).
+    - 반환 dict는 ``score_text(output)``의 필드(스타일)에 ``retention`` 키(의미 보존)를 더한다.
+    - 의미 보존은 수치·전문용어·헤지어 보존을 규칙으로 측정한다(LLM 불필요). 자연스러움 축과
+      더 정밀한 의미 판정은 ``llm_judge``의 몫.
     """
-    return score_text(output, max_words=max_words).as_dict()
+    d = score_text(output, max_words=max_words).as_dict()
+    d["retention"] = content_retention(original, output)
+    return d
 
 
 def judge_prompt(original: str, output: str) -> str:

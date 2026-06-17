@@ -2,6 +2,7 @@
 from .detector import ENDING_TYPES, EndingResult, classify_ending, is_gaejo
 from .evaluator import judge_prompt, objective
 from .prompt import RULESET, build_messages
+from .retention import content_retention
 from .score import ComplianceReport, score_text
 
 __version__ = "0.1.0"
@@ -15,6 +16,7 @@ __all__ = [
     "build_messages",
     "RULESET",
     "objective",
+    "content_retention",
     "judge_prompt",
     "__version__",
 ]

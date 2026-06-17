@@ -28,6 +28,13 @@
 - CI: Python 3.9~3.14 매트릭스, pip 캐시, kiwipiepy 임포트 가드, `pytest -rs`.
 - 테스트 30개 → 62개(cli/transform/evaluator 신규 + 감사·재검증 회귀 테스트).
 
+### Added (의미 보존 객관 메트릭)
+- `gaejo.retention.content_retention(original, output)` — 수치·전문용어·헤지어 보존을 형태소 규칙으로
+  측정(LLM/키 불필요). 평가에서 측정된 약점 축(수치·뉘앙스 누락)을 객관 게이트로 포착.
+- `gaejo.evaluator.objective`가 이제 `original`을 실제로 사용 — 반환 dict에 `retention` 키 추가
+  (감사 지적사항: objective가 original을 무시하던 문제 해소).
+- 테스트 62 → 71개(retention 9건).
+
 ### Docs
 - `docs/evaluation.md` + `examples/evaluate.py` + `examples/eval_cases.json` 추가 —
   홀드아웃 10케이스 기능 검증(스타일 0.97·의미보존 0.92·자연 0.95·개조식 종결 100%).

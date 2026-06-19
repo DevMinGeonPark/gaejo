@@ -84,6 +84,75 @@ def _cmd_transform(args) -> int:
     return 0
 
 
+def _cmd_review(args) -> int:
+    """HIL 검토 루프: 후보를 사람이 승인/수정/기각하고 gold(JSONL)로 적재."""
+    from .evaluator import objective
+    from .hil import append_gold, gold_stats, judge_agreement, load_gold, make_record
+
+    cases = [json.loads(ln) for ln in open(args.cases, encoding="utf-8") if ln.strip()]
+    n = 0
+    for c in cases:
+        original, unit = c["original"], c.get("unit", "bullet")
+        candidate = c.get("candidate")
+        if candidate is None:
+            from .transform import DEFAULT_MODEL, transform
+            try:
+                candidate = transform(original, unit=unit, model=args.model or DEFAULT_MODEL)
+            except RuntimeError as exc:
+                print(f"[후보 생성 불가] {exc}\n  cases에 'candidate'를 넣거나 키를 설정하세요.",
+                      file=sys.stderr)
+                return 1
+
+        obj = None
+        try:
+            obj = objective(original, candidate)
+        except RuntimeError:
+            pass  # kiwipiepy 미설치 시 메트릭 생략
+
+        print("\n" + "─" * 60)
+        print(f"[{c.get('id', n)}] ({unit})")
+        print(f"  원문: {original}")
+        print(f"  후보: {candidate}")
+        if obj:
+            r = obj.get("retention") or {}
+            print(f"  객관: 개조식={obj['korean_gaejo_ratio']} 완문={obj['full_sentence_count']}"
+                  f" 의미보존={r.get('content_retention')}")
+        choice = input("  [a]ccept [e]dit [r]eject [s]kip [q]uit > ").strip().lower()
+        if choice in ("q", "quit"):
+            break
+        if choice in ("s", "skip", ""):
+            continue
+        edited = None
+        if choice in ("e", "edit"):
+            decision = "edit"
+            print("  수정본 입력(빈 줄로 종료):")
+            lines = []
+            while True:
+                ln = input()
+                if ln == "":
+                    break
+                lines.append(ln)
+            edited = "\n".join(lines)
+        elif choice in ("r", "reject"):
+            decision = "reject"
+        else:
+            decision = "accept"
+        rec = make_record(original, unit, candidate, decision, edited=edited,
+                          objective=obj, judge=c.get("judge"), reviewer=args.reviewer)
+        append_gold(args.out, rec)
+        n += 1
+
+    print(f"\n검토 {n}건 → {args.out}")
+    if n:
+        recs = load_gold(args.out)
+        print("gold 분포:", gold_stats(recs)["decisions"])
+        agr = judge_agreement(recs)
+        if agr.get("n"):
+            print(f"judge 교정(n={agr['n']}): pearson={agr['pearson_r']} "
+                  f"accept정확도={agr['accept_accuracy']} κ={agr['cohen_kappa']}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="gaejo", description="한국식 연구 발표 개조식 어휘 다듬기")
     p.add_argument("--version", action="store_true", help="버전 출력")
@@ -111,6 +180,14 @@ def build_parser() -> argparse.ArgumentParser:
     t.add_argument("--max-tokens", dest="max_tokens", type=int, default=None,
                    help="출력 토큰 상한(기본: transform.DEFAULT_MAX_TOKENS)")
     t.set_defaults(func=_cmd_transform)
+
+    rv = sub.add_parser("review", help="HIL 검토: 후보를 승인/수정/기각해 gold로 적재")
+    rv.add_argument("--cases", required=True,
+                    help="JSONL: 줄마다 {original, unit?, candidate?, judge?}")
+    rv.add_argument("--out", default="gold.jsonl", help="gold 적재 경로(append)")
+    rv.add_argument("--model", default=None, help="후보 생성 모델(candidate 없을 때)")
+    rv.add_argument("--reviewer", default=None, help="검토자 식별자(선택)")
+    rv.set_defaults(func=_cmd_review)
     return p
 
 

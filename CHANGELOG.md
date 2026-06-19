@@ -28,6 +28,13 @@
 - CI: Python 3.9~3.14 매트릭스, pip 캐시, kiwipiepy 임포트 가드, `pytest -rs`.
 - 테스트 30개 → 62개(cli/transform/evaluator 신규 + 감사·재검증 회귀 테스트).
 
+### Added (HIL + 평가 캐스케이드)
+- `gaejo.hil` — Human-in-the-loop 검토 gold 적재(JSONL) + `judge_agreement`(LLM judge↔사람 일치도:
+  pearson·accept정확도·Cohen's κ). LLM judge를 사람 정답으로 검증하는 교정 도구.
+- CLI `gaejo review --cases ... --out gold.jsonl` — 후보 승인/수정/기각 인터랙티브 루프
+  (후보·judge 사전제공 시 키 불필요). `examples/hil_cases.jsonl` 샘플 동봉.
+- 테스트 71 → 79개(hil 8건).
+
 ### Added (의미 보존 객관 메트릭)
 - `gaejo.retention.content_retention(original, output)` — 수치·전문용어·헤지어 보존을 형태소 규칙으로
   측정(LLM/키 불필요). 평가에서 측정된 약점 축(수치·뉘앙스 누락)을 객관 게이트로 포착.

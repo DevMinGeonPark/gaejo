@@ -75,7 +75,8 @@ messages_for("...", unit="slide")   # {"system":..., "user":..., "model":...}
 | `gaejo.score` | 개조식 준수도 메트릭(객관 축): 종결 비율·어절 수·완전문장 안티패턴. BLEU/ROUGE 비의존 |
 | `gaejo.prompt` | 코퍼스 보정 규칙 + few-shot 빌더(augmented zero-shot) |
 | `gaejo.transform` | LLM 변환 실행기(Anthropic API) |
-| `gaejo.evaluator` | 3축 평가(객관 메트릭 + LLM 판정) |
+| `gaejo.evaluator` | 3축 평가: 객관(스타일 `score` + 의미보존 `content_retention`) + LLM 판정 |
+| `gaejo.hil` | Human-in-the-loop 검토·gold 적재, LLM judge↔사람 일치도(교정) |
 
 ## 개조식 핵심 규칙 (코퍼스 보정)
 
@@ -98,6 +99,20 @@ messages_for("...", unit="slide")   # {"system":..., "user":..., "model":...}
 | 개조식 종결 비율 (객관/Kiwi) | **100%** · 완전문장 0건 |
 
 재현: `ANTHROPIC_API_KEY=... python examples/evaluate.py --judge` · 방법론·약점: **[docs/evaluation.md](docs/evaluation.md)**
+
+## 평가 캐스케이드 + HIL
+
+변환 후보를 **신뢰도 순으로 걸러내고**, 통과 못 한 것만 사람이 검토한다:
+
+```
+transform → 객관 게이트(score+retention, 키 불필요) → LLM judge(3축) → HIL(사람 승인/수정)
+                                                                          └→ gold.jsonl
+```
+
+`gaejo review --cases cases.jsonl --out gold.jsonl` 로 후보를 승인(`a`)/수정(`e`)/기각(`r`)하면,
+사람 결정·수정본이 **gold**로 쌓인다. 이 gold는 (1) 향후 참조 기반 평가의 정답 (2) **LLM judge 검증**
+(judge 점수 ↔ 사람 결정의 상관·κ — `gaejo.hil.judge_agreement`)에 쓰인다. 후보가 없으면 `transform`으로
+생성(키 필요), 있으면 키 없이 검토만 가능. 자세히: **[docs/evaluation.md](docs/evaluation.md)**
 
 ## 데이터
 

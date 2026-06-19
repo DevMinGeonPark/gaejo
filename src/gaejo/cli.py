@@ -117,7 +117,11 @@ def _cmd_review(args) -> int:
             r = obj.get("retention") or {}
             print(f"  객관: 개조식={obj['korean_gaejo_ratio']} 완문={obj['full_sentence_count']}"
                   f" 의미보존={r.get('content_retention')}")
-        choice = input("  [a]ccept [e]dit [r]eject [s]kip [q]uit > ").strip().lower()
+        try:
+            choice = input("  [a]ccept [e]dit [r]eject [s]kip [q]uit > ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print()  # 입력 종료(Ctrl-D)/중단(Ctrl-C) → quit으로 처리
+            break
         if choice in ("q", "quit"):
             break
         if choice in ("s", "skip", ""):
@@ -128,7 +132,10 @@ def _cmd_review(args) -> int:
             print("  수정본 입력(빈 줄로 종료):")
             lines = []
             while True:
-                ln = input()
+                try:
+                    ln = input()
+                except EOFError:
+                    break
                 if ln == "":
                     break
                 lines.append(ln)

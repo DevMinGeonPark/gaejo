@@ -91,3 +91,25 @@ def test_review_cli_simulated(tmp_path, monkeypatch, capsys):
     assert recs[1]["decision"] == "edit" and recs[1]["final"] == "데이터 필요함"
     # 객관 메트릭이 후보 기준으로 붙었는지
     assert recs[0]["objective"]["korean_gaejo_ratio"] == 1.0
+
+
+def test_review_cli_eof_graceful(tmp_path, monkeypatch):
+    """입력이 떨어지면(EOF/Ctrl-D) 크래시 없이 quit 처리."""
+    pytest.importorskip("kiwipiepy")
+    import io
+
+    from gaejo.cli import main
+
+    cases = tmp_path / "cases.jsonl"
+    cases.write_text(
+        json.dumps({"unit": "bullet", "original": "정확도를 올렸습니다",
+                    "candidate": "정확도 향상"}, ensure_ascii=False) + "\n"
+        + json.dumps({"unit": "bullet", "original": "데이터가 필요합니다",
+                      "candidate": "데이터 필요"}, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "gold.jsonl"
+    # 입력 1개만 → 첫 케이스 accept 후 두 번째에서 EOF → 정상 종료
+    monkeypatch.setattr("sys.stdin", io.StringIO("a\n"))
+    assert main(["review", "--cases", str(cases), "--out", str(out)]) == 0
+    assert len(load_gold(str(out))) == 1

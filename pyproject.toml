@@ -30,6 +30,11 @@ dev = ["kiwipiepy>=0.15", "anthropic>=0.40", "pytest>=7,<10", "ruff>=0.15,<0.16"
 [project.scripts]
 gaejo = "gaejo.cli:main"
 
+[project.urls]
+Homepage = "https://github.com/DevMinGeonPark/gaejo"
+Repository = "https://github.com/DevMinGeonPark/gaejo"
+Issues = "https://github.com/DevMinGeonPark/gaejo/issues"
+
 [tool.hatch.version]
 path = "src/gaejo/__init__.py"
 

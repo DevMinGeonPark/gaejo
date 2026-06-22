@@ -28,6 +28,12 @@
 - CI: Python 3.9~3.14 매트릭스, pip 캐시, kiwipiepy 임포트 가드, `pytest -rs`.
 - 테스트 30개 → 62개(cli/transform/evaluator 신규 + 감사·재검증 회귀 테스트).
 
+### Added (MCP 서버 — 에이전트 도구 형태)
+- `gaejo.mcp_server` + `gaejo-mcp` 실행 스크립트 — Claude Code·Codex가 호출하는 MCP 도구
+  (`gaejo_rules`/`detect_ending`/`score`/`check`). LLM은 에이전트가 담당, GAEJO는 규칙+결정론적 검증 제공(키 불필요).
+- `check(original, output)`: 자기검증 도구 — 개조식 준수+의미보존 후 고칠 점(issues) 반환, ok 게이트.
+- `[project.optional-dependencies] mcp`. 테스트 80 → 87개(mcp 7건, 라이브 stdio 호출 포함).
+
 ### Added (HIL + 평가 캐스케이드)
 - `gaejo.hil` — Human-in-the-loop 검토 gold 적재(JSONL) + `judge_agreement`(LLM judge↔사람 일치도:
   pearson·accept정확도·Cohen's κ). LLM judge를 사람 정답으로 검증하는 교정 도구.

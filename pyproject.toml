@@ -24,11 +24,13 @@ dependencies = []
 [project.optional-dependencies]
 kiwi = ["kiwipiepy>=0.15"]
 anthropic = ["anthropic>=0.40"]
-all = ["kiwipiepy>=0.15", "anthropic>=0.40"]
-dev = ["kiwipiepy>=0.15", "anthropic>=0.40", "pytest>=7,<10", "ruff>=0.15,<0.16"]
+mcp = ["mcp>=1.2"]
+all = ["kiwipiepy>=0.15", "anthropic>=0.40", "mcp>=1.2"]
+dev = ["kiwipiepy>=0.15", "anthropic>=0.40", "mcp>=1.2", "pytest>=7,<10", "ruff>=0.15,<0.16"]
 
 [project.scripts]
 gaejo = "gaejo.cli:main"
+gaejo-mcp = "gaejo.mcp_server:main"
 
 [project.urls]
 Homepage = "https://github.com/DevMinGeonPark/gaejo"

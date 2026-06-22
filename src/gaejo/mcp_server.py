@@ -16,8 +16,8 @@ from __future__ import annotations
 from mcp.server.fastmcp import FastMCP
 
 from .detector import classify_ending
+from .evaluator import check as _check
 from .prompt import RULESET
-from .retention import content_retention
 from .score import score_text
 
 mcp = FastMCP("gaejo")
@@ -68,36 +68,7 @@ def check(original: str, output: str, max_words: int = 12) -> dict:
     개조식 준수(스타일)와 의미 보존(원문 대비 수치·전문용어·헤지어)을 함께 보고,
     고쳐야 할 점을 issues로 돌려준다. ok=True면 통과, 아니면 issues를 반영해 다시 변환.
     """
-    rep = score_text(output, max_words=max_words).as_dict()
-    ret = content_retention(original, output)
-
-    issues: list[str] = []
-    fulls = [ln["text"] for ln in rep["lines"] if ln["ending"] == "완전문장"]
-    if fulls:
-        issues.append(f"완전문장 종결 {len(fulls)}줄 — 명사/명사형(-ㅁ/음)으로 변환: {fulls}")
-    others = [ln["text"] for ln in rep["lines"] if ln["ending"] == "기타"]
-    if others:
-        issues.append(f"종결 불명확 {len(others)}줄(조사 종결/용언 노출): {others}")
-    if (rep["ending_dist"].get("기") or 0) > 0:
-        issues.append("'-기' 종결 사용 — 코퍼스 미사용 양식, 명사/-ㅁ음 권장")
-    nmiss = ret["numbers"]["missing"]
-    if nmiss:
-        issues.append(f"수치 누락: {nmiss} — 원문 수치를 보존하라")
-    tmiss = ret["terms"]["missing"]
-    if tmiss:
-        issues.append(f"전문용어 누락: {tmiss} — 영어 원어를 보존하라")
-    hmiss = ret["hedges"]["missing_categories"]
-    if hmiss:
-        issues.append(f"뉘앙스 누락 범주: {hmiss}(근사/역접/강조/가능성) — 해당 뉘앙스를 살려라")
-
-    ok = not issues  # 지적사항이 하나도 없을 때만 통과
-    return {
-        "ok": ok,
-        "gaejo_ending_ratio": rep["korean_gaejo_ratio"],
-        "full_sentences": rep["full_sentence_count"],
-        "content_retention": ret["content_retention"],
-        "issues": issues,
-    }
+    return _check(original, output, max_words=max_words)
 
 
 def main() -> None:

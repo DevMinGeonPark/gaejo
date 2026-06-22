@@ -84,6 +84,19 @@ def _cmd_transform(args) -> int:
     return 0
 
 
+def _cmd_check(args) -> int:
+    """변환 자기검증: 원문+변환본 → 개조식·의미보존 검사, issues/ok 출력."""
+    from .evaluator import check
+
+    try:
+        result = check(_read(args.original), _read(args.output), max_words=args.max_words)
+    except RuntimeError as exc:  # kiwipiepy 미설치
+        print(f"[검증 불가] {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cmd_review(args) -> int:
     """HIL 검토 루프: 후보를 사람이 승인/수정/기각하고 gold(JSONL)로 적재."""
     from .evaluator import objective
@@ -187,6 +200,12 @@ def build_parser() -> argparse.ArgumentParser:
     t.add_argument("--max-tokens", dest="max_tokens", type=int, default=None,
                    help="출력 토큰 상한(기본: transform.DEFAULT_MAX_TOKENS)")
     t.set_defaults(func=_cmd_transform)
+
+    ck = sub.add_parser("check", help="변환 자기검증(원문+변환본 → 개조식·의미보존 issues/ok)")
+    ck.add_argument("original", help="원문(구어체)")
+    ck.add_argument("output", help="변환본(개조식 후보)")
+    ck.add_argument("--max-words", dest="max_words", type=int, default=12)
+    ck.set_defaults(func=_cmd_check)
 
     rv = sub.add_parser("review", help="HIL 검토: 후보를 승인/수정/기각해 gold로 적재")
     rv.add_argument("--cases", required=True,

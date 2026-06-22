@@ -16,6 +16,44 @@ import os
 from .retention import content_retention
 from .score import score_text
 
+
+def check(original: str, output: str, max_words: int = 12) -> dict:
+    """변환 자기검증 — 개조식 준수(스타일) + 의미 보존을 함께 보고 고칠 점을 돌려준다.
+
+    LLM 불필요. 에이전트(또는 CLI/MCP)가 자기 변환본을 검수·수정할 때 쓰는 단일 진입점.
+    반환: {ok, gaejo_ending_ratio, full_sentences, content_retention, issues[]}.
+    ``ok``는 issues가 하나도 없을 때만 True.
+    """
+    rep = score_text(output, max_words=max_words).as_dict()
+    ret = content_retention(original, output)
+
+    issues: list[str] = []
+    fulls = [ln["text"] for ln in rep["lines"] if ln["ending"] == "완전문장"]
+    if fulls:
+        issues.append(f"완전문장 종결 {len(fulls)}줄 — 명사/명사형(-ㅁ/음)으로 변환: {fulls}")
+    others = [ln["text"] for ln in rep["lines"] if ln["ending"] == "기타"]
+    if others:
+        issues.append(f"종결 불명확 {len(others)}줄(조사 종결/용언 노출): {others}")
+    if (rep["ending_dist"].get("기") or 0) > 0:
+        issues.append("'-기' 종결 사용 — 코퍼스 미사용 양식, 명사/-ㅁ음 권장")
+    if ret["numbers"]["missing"]:
+        issues.append(f"수치 누락: {ret['numbers']['missing']} — 원문 수치를 보존하라")
+    if ret["terms"]["missing"]:
+        issues.append(f"전문용어 누락: {ret['terms']['missing']} — 영어 원어를 보존하라")
+    if ret["hedges"]["missing_categories"]:
+        issues.append(
+            f"뉘앙스 누락 범주: {ret['hedges']['missing_categories']}"
+            "(근사/역접/강조/가능성) — 해당 뉘앙스를 살려라"
+        )
+
+    return {
+        "ok": not issues,
+        "gaejo_ending_ratio": rep["korean_gaejo_ratio"],
+        "full_sentences": rep["full_sentence_count"],
+        "content_retention": ret["content_retention"],
+        "issues": issues,
+    }
+
 JUDGE_AXES = {
     "style_accuracy": "0~1, 개조식 문체(명사/명사형 종결, 압축, 라벨형)에 얼마나 부합하는가",
     "content_preservation": "0~1, 원문의 의미·수치·인과·고유명사·뉘앙스를 보존했는가",

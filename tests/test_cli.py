@@ -70,3 +70,10 @@ def test_detect_multiline_outputs_array(capsys):
     arr = json.loads(capsys.readouterr().out)
     assert isinstance(arr, list) and len(arr) == 2
     assert [x["ending"] for x in arr] == ["ㅁ음", "명사"]
+
+
+def test_check_cmd(capsys):
+    pytest.importorskip("kiwipiepy")
+    assert main(["check", "정확도를 반드시 높여야 합니다", "정확도 향상 필요함"]) == 0
+    d = json.loads(capsys.readouterr().out)
+    assert d["ok"] is False and any("강조" in i for i in d["issues"])

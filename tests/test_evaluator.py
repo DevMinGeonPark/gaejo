@@ -71,3 +71,19 @@ def test_llm_judge_raises_on_no_json(monkeypatch):
     _stub_anthropic(monkeypatch, _Resp("end_turn", [_Block("text", "JSON이 아닌 응답")]))
     with pytest.raises(RuntimeError, match="JSON 없음"):
         llm_judge("원문", "출력")
+
+
+def test_check_pass():
+    pytest.importorskip("kiwipiepy")
+    from gaejo.evaluator import check
+    r = check("정확도를 4.7%p 정도 높였습니다", "정확도 약 4.7%p 향상")
+    assert r["ok"] is True and r["issues"] == []
+
+
+def test_check_flags_losses():
+    pytest.importorskip("kiwipiepy")
+    from gaejo.evaluator import check
+    r = check("정확도를 4.7%p 개선했습니다", "정확도를 개선했습니다")
+    assert r["ok"] is False
+    assert any("완전문장" in i for i in r["issues"])
+    assert any("수치 누락" in i for i in r["issues"])

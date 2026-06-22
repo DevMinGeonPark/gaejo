@@ -28,6 +28,13 @@
 - CI: Python 3.9~3.14 매트릭스, pip 캐시, kiwipiepy 임포트 가드, `pytest -rs`.
 - 테스트 30개 → 62개(cli/transform/evaluator 신규 + 감사·재검증 회귀 테스트).
 
+### Changed (1차 사용 형태 = 하네스 스킬 + CLI)
+- **`skill/SKILL.md`** 추가 — Claude Code 하네스 스킬(개조식 규칙+워크플로). 에이전트가 변환,
+  `gaejo` CLI로 검증. MCP 서버보다 가벼운 1차 형태로 재포지셔닝(MCP는 선택).
+- **`gaejo check` CLI** + `gaejo.evaluator.check(original, output)` — 자기검증 공용 진입점
+  (개조식 준수+의미보존→issues/ok). CLI·스킬·MCP가 동일 함수 공유.
+- 테스트 87 → 90개.
+
 ### Added (MCP 서버 — 에이전트 도구 형태)
 - `gaejo.mcp_server` + `gaejo-mcp` 실행 스크립트 — Claude Code·Codex가 호출하는 MCP 도구
   (`gaejo_rules`/`detect_ending`/`score`/`check`). LLM은 에이전트가 담당, GAEJO는 규칙+결정론적 검증 제공(키 불필요).

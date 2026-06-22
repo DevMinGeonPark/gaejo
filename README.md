@@ -3,8 +3,8 @@
 > PowerPoint 텍스트를 **한국 학술 연구 발표의 개조식(箇條式) 문체**로 다듬는 도구.
 > 구어체·완전문장체 슬라이드 텍스트 → 명사·명사형 종결의 압축된 개조식으로.
 >
-> **Claude Code·Codex 같은 에이전트가 호출하는 MCP 도구**가 1차 사용 형태다 —
-> LLM(에이전트)이 변환을 하고, GAEJO는 ① 개조식 규칙과 ② 결정론적 검증(판별·채점·의미보존)을 제공한다.
+> **Claude Code 하네스 스킬 + `gaejo` CLI**가 1차 사용 형태다 — LLM(에이전트)이 변환하고,
+> GAEJO는 ① 개조식 규칙(스킬)과 ② 결정론적 검증(`gaejo check`)을 제공한다(API 키 불필요, MCP는 선택).
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org)
@@ -34,39 +34,40 @@ pip install -e ".[kiwi]"     # 판별기·메트릭만 (LLM 변환 제외)
 (zsh에서는 extras 대괄호를 반드시 따옴표로 감싼다.)
 `gaejo` 코어 자체는 의존성이 없다. 판별/메트릭에는 `kiwipiepy`, MCP 서버에는 `mcp`가 필요하다.
 
-## 에이전트 도구로 사용 (MCP) — Claude Code · Codex
+## 에이전트 도구로 사용 — Claude Code(스킬) · Codex
 
-**1차 사용 형태.** GAEJO는 스스로 LLM을 호출하지 않는다. Claude Code/Codex가 변환을 하고,
-GAEJO MCP 서버가 규칙·검증 도구를 제공한다(API 키 불필요).
+**1차 사용 형태 = 하네스 스킬 + CLI.** GAEJO는 스스로 LLM을 호출하지 않는다.
+**에이전트(Claude Code/Codex)가 변환**하고, GAEJO는 ① 규칙(스킬) ② 결정론적 검증(`gaejo` CLI)을
+제공한다. **API 키 불필요.**
+
+### Claude Code — 스킬 (권장)
 
 ```bash
-pip install -e ".[kiwi,mcp]"   # 또는 ".[all]"
+pip install -e ".[kiwi]"
+mkdir -p ~/.claude/skills/gaejo && cp skill/SKILL.md ~/.claude/skills/gaejo/
 ```
+"개조식으로 바꿔줘" / "슬라이드 문구 다듬어줘" 류에 스킬이 트리거된다. 에이전트가 규칙대로 변환한 뒤
+**`gaejo check`로 검증→수정 루프**를 돈다. 에이전트가 도구처럼 호출하는 CLI:
 
-**노출 도구 4개:**
-| 도구 | 역할 |
+| CLI | 역할 |
 |---|---|
-| `gaejo_rules()` | 개조식 변환 규칙(스타일 가이드) — 변환 전에 읽음 |
-| `detect_ending(text)` | 한 줄 종결 양식 판별 |
-| `score(text)` | 블록 개조식 준수도 채점 |
-| `check(original, output)` | **자기검증** — 개조식+의미보존 검사 후 고칠 점(issues) 반환 |
+| `gaejo check "<원문>" "<변환본>"` | **자기검증** — 개조식+의미보존 검사, `{ok, issues, …}` |
+| `gaejo score "<여러 줄>"` | 블록 개조식 준수도 채점 |
+| `gaejo detect "<줄>"` | 한 줄 종결 양식 판별 |
+| `gaejo prompt "<문장>"` | 규칙·few-shot 전체(필요 시) |
 
-**에이전트 사용 흐름:** `gaejo_rules`로 규칙 로드 → 에이전트가 직접 변환 → `check(원문, 변환본)`으로
-검증 → `ok:false`면 `issues`를 반영해 재변환.
+### Codex 등 (CLI + AGENTS.md)
 
-**Claude Code 등록:**
+스킬 포맷이 없는 에이전트는 같은 `gaejo` CLI를 `AGENTS.md`/프롬프트로 안내해 동일하게 쓴다
+(`gaejo check`로 검증). `skill/SKILL.md`의 워크플로를 그대로 붙여넣어도 된다.
+
+### (선택) MCP 서버
+
+순수 MCP 클라이언트를 선호하면 MCP로도 같은 도구를 노출한다(`gaejo_rules`/`detect_ending`/`score`/`check`):
 ```bash
-claude mcp add gaejo -- gaejo-mcp
-```
-또는 프로젝트 `.mcp.json`:
-```json
-{ "mcpServers": { "gaejo": { "command": "gaejo-mcp" } } }
-```
-
-**Codex 등록** (`~/.codex/config.toml`):
-```toml
-[mcp_servers.gaejo]
-command = "gaejo-mcp"
+pip install -e ".[mcp]"
+claude mcp add gaejo -- gaejo-mcp              # Claude Code
+# Codex ~/.codex/config.toml: [mcp_servers.gaejo] / command = "gaejo-mcp"
 ```
 
 ## 빠른 시작
@@ -112,7 +113,8 @@ messages_for("...", unit="slide")   # {"system":..., "user":..., "model":...}
 | `gaejo.detector` | Kiwi 기반 종결 판별기. 음슴체 `-ㅁ`의 EF/ETN 불일치를 **태그+어미형태** 병용으로 해결 |
 | `gaejo.score` | 개조식 준수도 메트릭(객관 축): 종결 비율·어절 수·완전문장 안티패턴. BLEU/ROUGE 비의존 |
 | `gaejo.prompt` | 코퍼스 보정 규칙 + few-shot 빌더(augmented zero-shot) |
-| `gaejo.mcp_server` | **MCP 서버**(Claude Code·Codex용 도구: rules/detect/score/check) |
+| `gaejo.evaluator.check` | **자기검증**(개조식+의미보존→issues/ok) — CLI/스킬/MCP 공용 진입점 |
+| `gaejo.mcp_server` | (선택) MCP 서버 — 순수 MCP 클라이언트용 |
 | `gaejo.transform` | (선택) 직접 Anthropic API 호출 변환기 — 에이전트 없이 standalone으로 쓸 때만 |
 | `gaejo.evaluator` | 3축 평가: 객관(스타일 `score` + 의미보존 `content_retention`) + LLM 판정 |
 | `gaejo.hil` | Human-in-the-loop 검토·gold 적재, LLM judge↔사람 일치도(교정) |

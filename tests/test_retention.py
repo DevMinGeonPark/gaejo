@@ -59,3 +59,17 @@ def test_objective_includes_retention():
     assert "retention" in d
     assert d["retention"]["numbers"]["ratio"] == 1.0
     assert d["retention"]["hedges"]["ratio"] == 1.0
+
+
+def test_determiner_han_not_misread_as_number():
+    # '한 번/하나의'(관형사 a/one)는 숫자 1로 오인식하면 안 됨 — 실데이터 오탐 회귀
+    r = content_retention("한 번의 해석이 느려서가 아니라 후보가 늘어남", "단일 해석 속도가 아니라 후보 증가")
+    assert r["numbers"]["missing"] == []
+    r2 = content_retention("하나의 조건에서 여러 설계안 도출", "단일 조건에서 다수 설계안 도출")
+    assert r2["numbers"]["missing"] == []
+
+
+def test_real_numeral_still_preserved_and_flagged():
+    # 명확한 수사(두/세)는 그대로 검사
+    assert content_retention("두 배 빨라짐", "2배 향상")["numbers"]["missing"] == []
+    assert content_retention("세 가지 한계 존재", "한계 두 가지")["numbers"]["missing"] == ["3"]

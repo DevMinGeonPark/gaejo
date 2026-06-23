@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/banner.png" alt="GAEJO — 개조식 변환기" width="860">
+</p>
+
 # GAEJO — 한국 연구 발표 개조식 변환기 v0.1.0
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
